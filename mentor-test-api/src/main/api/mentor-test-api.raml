@@ -1,0 +1,17 @@
+#%RAML 1.0
+title: Mentor Test Api
+description: |
+  This API will act as a test API to ensure all communication between
+  the base on-premise app is working with Anypoint Runtime
+version: 1
+baseUri: http://0.0.0.0:8081/api
+protocols: [HTTP]
+
+/test:
+  description: the main Endpoint
+  get:
+    description: main flow
+    responses:
+      200:
+          body:
+            application/json:

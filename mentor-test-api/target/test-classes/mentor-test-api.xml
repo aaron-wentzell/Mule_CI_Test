@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-platform-gw="http://www.mulesoft.org/schema/mule/api-platform-gw" xmlns:cloudhub="http://www.mulesoft.org/schema/mule/cloudhub" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/cloudhub http://www.mulesoft.org/schema/mule/cloudhub/current/mule-cloudhub.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/api-platform-gw http://www.mulesoft.org/schema/mule/api-platform-gw/current/mule-api-platform-gw.xsd">
+    <http:listener-config name="mentor-test-api-httpListenerConfig" host="0.0.0.0" port="${http.port}" doc:name="HTTP Listener Configuration"/>
+    <apikit:config name="mentor-test-api-config" raml="mentor-test-api.raml" consoleEnabled="false" doc:name="Router"/>
+    <cloudhub:config name="Cloudhub__Basic_Auth_Authentication" username="aaronwentzell_Mentor" password="Escape10" doc:name="Cloudhub: Basic Auth Authentication"/>
+    <api-platform-gw:api apiName="mentor-test-api" version="1.0" flowRef="mentor-test-api-main" create="true" apikitRef="mentor-test-api-config" doc:name="API Autodiscovery"/>
+    <cloudhub:token-config name="Cloudhub__Inhered_Token_Authentication" doc:name="Cloudhub: Inhered Token Authentication"/>
+    <flow name="mentor-test-api-main">
+        <http:listener config-ref="mentor-test-api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
+        <apikit:router config-ref="mentor-test-api-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="mentor-test-api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="mentor-test-api-console">
+        <http:listener config-ref="mentor-test-api-httpListenerConfig" path="/console/*" doc:name="HTTP"/>
+        <apikit:console config-ref="mentor-test-api-config" doc:name="APIkit Console"/>
+    </flow>
+    <flow name="get:/test:mentor-test-api-config">
+        <set-variable variableName="datetime" value="#[server.dateTime]" doc:name="Variable"/>
+        <logger message="Logger -&gt; Received Request for GET /test at --&gt; #[flowVars.datetime]" level="INFO" doc:name="Logger"/>
+        <set-payload value="{  &quot;Status&quot;:&quot;OK&quot; }" doc:name="Set Payload" mimeType="application/json"/>
+        <tracking:custom-event event-name="Received Request" doc:name="Custom Business Event">
+            <tracking:meta-data key="datetime" value="#[flowVars.datetime]"/>
+        </tracking:custom-event>
+        <cloudhub:create-notification config-ref="Cloudhub__Basic_Auth_Authentication" domain="com.mentor" message="Get /Test Time -&gt; #[flowVars.datetime]" priority="INFO" doc:name="Cloudhub"/>
+    </flow>
+    <apikit:mapping-exception-strategy name="mentor-test-api-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>
